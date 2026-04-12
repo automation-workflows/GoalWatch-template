@@ -18,5 +18,25 @@
         "verified": false
       }
     ]
+  },
+  {
+    "id": "l1ac906",
+    "site": "api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eth",
+    "goal": "ethereum price is above $100",
+    "sessionToken": "4vc3vy1",
+    "active": true,
+    "verified": false,
+    "createdAt": "2026-04-12T20:29:50.310Z",
+    "updatedAt": "2026-04-12T20:29:50.310Z",
+    "channels": [
+      {
+        "platform": "discord",
+        "userId": "1365391668148437083",
+        "sessionToken": null,
+        "chatId": null,
+        "channelId": null,
+        "verified": false
+      }
+    ]
   }
 ]
