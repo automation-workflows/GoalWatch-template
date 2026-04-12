@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.actor != 'github-actions[bot]' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.actor != 'github-actions[bot]' && github.event.head_commit.author.name != 'GoalWatch Bot') }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
