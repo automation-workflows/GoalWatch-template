@@ -1,134 +1,72 @@
 # GoalWatch
 
-GoalWatch is a zero-server website goal monitor powered by GitHub Actions.
+GoalWatch is a zero-server goal alert system for websites, dashboards, and custom event pages. It watches a page, decides whether a natural-language goal has been met, and sends a notification to Telegram or Discord.
 
-## How it works
+## Why it exists
 
-1. Client opens static frontend (`index.html`).
-2. Client enters site URL + natural-language goal.
-3. Client chooses Telegram or Discord.
-4. Frontend dispatches GitHub Actions workflows.
-5. Workflows store monitor data in `monitors.json`.
-6. Daily cron checks goals with Pollinations.ai and sends notifications.
+Many products need a simple alert button for a user-driven event:
 
-## Features
+- “Notify me when my portfolio hits a target”
+- “Alert me when this Web3 event happens”
+- “Let me know when the score, price, or ratio crosses a threshold”
+- “Start receiving updates when a client-defined condition becomes true”
 
-- Zero backend server
-- Static frontend (GitHub Pages compatible)
-- Storage in git files (`monitors.json`, `state.json`)
-- Daily goal checks at 9:00 AM IST
-- Telegram + Discord notifications
-- Pollinations.ai free model (`mistral`) with fallback numeric parsing
+GoalWatch is designed for that exact pattern.
 
-## Required GitHub Secrets
+## Product flow
+
+1. A user writes the goal in plain language ( In the MVP, user have to add URL also; later, developers can move it into a secret or site config so the input is only the goal, url is eaily fetch by current url of client).
+2. They choose Telegram or Discord to receive alerts.
+3. They click the platform link and confirm a test message.
+4. GitHub Actions stores the monitor in `monitors.json`.
+5. A daily cron job checks the page and sends an alert when the goal is met.
+
+## Use cases
+
+- Finance alerts for tokens, prices, ratios, or wallet-related dashboards.
+- Web3 event watchers for on-chain or off-chain status pages.
+- Sports score and live match thresholds.
+- Product monitoring for landing page changes, counts, or status flags.
+- Custom client workflows where the user defines the event in their own words.
+
+## Current MVP notes
+
+- The frontend still uses a temporary GitHub PAT for workflow dispatch.
+- That PAT is only for the MVP.
+- Later, you can move dispatch into a server-side secret on your own site.
+
+## Docs
+
+- [Architecture](docs/architecture.md)
+- [Internal implementation notes](docs/internal.md)
+- [Use cases](docs/use-cases.md)
+
+## What ships with the repo
+
+- Static frontend in [index.html](index.html)
+- Git-backed monitor storage in [monitors.json](monitors.json)
+- Run state in [state.json](state.json)
+- GitHub Actions workflows under [.github/workflows](.github/workflows)
+- Runtime scripts under [scripts](scripts)
+
+## Secrets you need
 
 - `TELEGRAM_BOT_TOKEN`
 - `DISCORD_BOT_TOKEN`
 
-## Required PAT for frontend dispatch
+## Bot config you must set
 
-Frontend dispatches `workflow_dispatch` directly to GitHub API.
-Use a token with:
+- Telegram bot username in [index.html](index.html)
+- Discord bot id in [index.html](index.html)
 
-- `Actions: Write`
-- `Contents: Write`
-
-The token is prompted once and saved in browser localStorage (`goalwatch_pat`).
-
-## Frontend bot link config
-
-Update these constants in `index.html` for your deployment:
-
-- `TELEGRAM_BOT_USERNAME`
-- `DISCORD_BOT_ID`
-
-## Workflows
-
-- `.github/workflows/add-monitor.yml`
-  - `workflow_dispatch`
-  - actions: `add | verify | deactivate`
-  - updates `monitors.json`
-
-- `.github/workflows/telegram-intake.yml`
-  - schedule every 15 minutes + manual dispatch
-  - polls Telegram `/start <sessionToken>` via `getUpdates`
-  - resolves chat id and verifies Telegram channel
-  - sends `hi`
-
-- `.github/workflows/discord-verify.yml`
-  - `workflow_dispatch`
-  - opens DM channel from `user_id`
-  - sends `hi`
-  - stores Discord `channelId`
-
-- `.github/workflows/cron.yml`
-  - daily 9:00 AM IST (`30 3 * * *`) + manual dispatch
-  - scrapes site
-  - evaluates goal with Pollinations.ai
-  - sends notification
-  - updates `state.json`
-
-## File structure
+## File layout
 
 ```text
 .
 ├── index.html
 ├── monitors.json
 ├── state.json
+├── docs/
 ├── scripts/
-│   ├── check-goals.js
-│   ├── notify.js
-│   ├── telegram-intake.js
-│   └── discord-verify.js
 └── .github/workflows/
-    ├── add-monitor.yml
-    ├── telegram-intake.yml
-    ├── discord-verify.yml
-    └── cron.yml
-```
-
-## Data schema
-
-`monitors.json`
-
-```json
-[
-  {
-    "id": "abc123",
-    "site": "api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
-    "goal": "Bitcoin price is above $50,000",
-    "sessionToken": "abc123",
-    "active": true,
-    "verified": false,
-    "createdAt": "2026-04-13T00:00:00.000Z",
-    "updatedAt": "2026-04-13T00:00:00.000Z",
-    "channels": [
-      {
-        "platform": "telegram",
-        "sessionToken": "abc123",
-        "chatId": null,
-        "verified": false
-      },
-      {
-        "platform": "discord",
-        "userId": "1234567890",
-        "channelId": null,
-        "verified": false
-      }
-    ]
-  }
-]
-```
-
-`state.json`
-
-```json
-{
-  "telegramLastUpdateId": 0,
-  "abc123": {
-    "met": false,
-    "reason": "one sentence",
-    "lastChecked": "2026-04-13T00:00:00.000Z"
-  }
-}
 ```
