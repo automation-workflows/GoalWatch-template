@@ -24,10 +24,25 @@ function saveJson(filePath, data) {
 function parseGoalResponse(raw) {
   const statusMatch = raw.match(/STATUS:\s*(MET|NOT_MET)/i);
   const reasonMatch = raw.match(/REASON:\s*(.+)/i);
+  const clean = raw.trim();
+  const looksLikeErrorJson = clean.startsWith("{") && clean.includes("\"error\"");
   return {
     met: statusMatch ? statusMatch[1].toUpperCase() === "MET" : false,
-    reason: reasonMatch ? reasonMatch[1].trim() : raw.slice(0, 140).trim()
+    reason: reasonMatch
+      ? reasonMatch[1].trim()
+      : looksLikeErrorJson
+        ? "LLM provider returned an API error"
+        : raw.slice(0, 140).trim()
   };
+}
+
+function hasStructuredGoalAnswer(text) {
+  return /STATUS:\s*(MET|NOT_MET)/i.test(text) && /REASON:\s*/i.test(text);
+}
+
+function isProviderError(text) {
+  const t = text.trim();
+  return t.includes("Model not found") || (t.startsWith("{") && t.includes("\"error\""));
 }
 
 function fallbackEval(pageText, goal) {
@@ -63,23 +78,38 @@ async function evaluateGoal(pageText, goal) {
     "REASON: one sentence"
   ].join("\n");
 
-  try {
-    const res = await fetch(POLLINATIONS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [{ role: "user", content: prompt }],
-        model: "mistral",
-        seed: 42,
-        private: true
-      })
-    });
+  const attempts = [
+    {
+      messages: [{ role: "user", content: prompt }],
+      model: "openai",
+      seed: 42,
+      private: true
+    },
+    {
+      messages: [{ role: "user", content: prompt }],
+      seed: 42,
+      private: true
+    }
+  ];
 
-    const text = await res.text();
-    return parseGoalResponse(text);
-  } catch {
-    return fallbackEval(pageText, goal);
+  for (const body of attempts) {
+    try {
+      const res = await fetch(POLLINATIONS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const text = await res.text();
+      if (!res.ok) continue;
+      if (hasStructuredGoalAnswer(text)) return parseGoalResponse(text);
+      if (isProviderError(text)) continue;
+    } catch {
+      // Try next attempt.
+    }
   }
+
+  return fallbackEval(pageText, goal);
 }
 
 async function scrapePage(url) {
