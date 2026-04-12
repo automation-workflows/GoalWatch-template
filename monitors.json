@@ -49,9 +49,9 @@
     "goal": "Bitcoin price is above $50,000",
     "sessionToken": "62a67ql",
     "active": true,
-    "verified": false,
+    "verified": true,
     "createdAt": "2026-04-12T21:05:58.219Z",
-    "updatedAt": "2026-04-12T21:07:39.870Z",
+    "updatedAt": "2026-04-12T21:20:29.386Z",
     "channels": [
       {
         "platform": "discord",
@@ -59,9 +59,11 @@
         "sessionToken": null,
         "chatId": null,
         "channelId": "1492994195613290688",
-        "verified": false,
-        "testSentAt": "2026-04-12T21:07:39.870Z"
+        "verified": true,
+        "testSentAt": "2026-04-12T21:07:39.870Z",
+        "verifiedAt": "2026-04-12T21:20:29.386Z"
       }
-    ]
+    ],
+    "verifiedAt": "2026-04-12T21:20:29.386Z"
   }
 ]
