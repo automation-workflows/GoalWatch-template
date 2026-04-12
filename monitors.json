@@ -51,15 +51,16 @@
     "active": true,
     "verified": false,
     "createdAt": "2026-04-12T21:05:58.219Z",
-    "updatedAt": "2026-04-12T21:05:58.219Z",
+    "updatedAt": "2026-04-12T21:06:32.859Z",
     "channels": [
       {
         "platform": "discord",
         "userId": "768043546585726986",
         "sessionToken": null,
         "chatId": null,
-        "channelId": null,
-        "verified": false
+        "channelId": "1492994195613290688",
+        "verified": false,
+        "testSentAt": "2026-04-12T21:06:32.859Z"
       }
     ]
   }
