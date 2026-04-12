@@ -21,6 +21,14 @@ function saveJson(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
+function isChannelReady(channel) {
+  if (!channel) return false;
+  if (channel.verified) return true;
+  // Backward compatibility: older Discord verifies stored channelId but not verified flag.
+  if (channel.platform === "discord" && channel.channelId) return true;
+  return false;
+}
+
 function parseGoalResponse(raw) {
   const statusMatch = raw.match(/STATUS:\s*(MET|NOT_MET)/i);
   const reasonMatch = raw.match(/REASON:\s*(.+)/i);
@@ -145,7 +153,12 @@ async function main() {
   const monitors = loadJson(MONITORS_PATH, []);
   const state = loadJson(STATE_PATH, {});
 
-  const active = monitors.filter((m) => m.active && m.verified);
+  const active = monitors.filter((m) => {
+    if (!m.active) return false;
+    const channels = Array.isArray(m.channels) ? m.channels : [];
+    const hasVerifiedChannel = channels.some((c) => isChannelReady(c));
+    return hasVerifiedChannel || m.verified === true;
+  });
   console.log(`GoalWatch: checking ${active.length} active monitor(s)`);
 
   for (const monitor of active) {
@@ -168,7 +181,7 @@ async function main() {
 
       if (!alreadyNotified) {
         for (const channel of monitor.channels || []) {
-          if (!channel.verified) continue;
+          if (!isChannelReady(channel)) continue;
           try {
             await sendPlatformNotification(channel, message);
             console.log(`  sent -> ${channel.platform}`);

@@ -74,7 +74,12 @@ async function main() {
 
   channel.userId = String(userId);
   channel.channelId = String(channelId);
+  channel.verified = true;
+  channel.verifiedAt = new Date().toISOString();
   channel.testSentAt = new Date().toISOString();
+  monitor.verified = (monitor.channels || []).every((c) => c.verified);
+  monitor.lastVerifiedPlatform = "discord";
+  monitor.verifiedAt = new Date().toISOString();
   monitor.updatedAt = new Date().toISOString();
 
   saveMonitors(monitors);
