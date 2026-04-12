@@ -25,9 +25,9 @@
     "goal": "ethereum price is above $100",
     "sessionToken": "4vc3vy1",
     "active": true,
-    "verified": false,
+    "verified": true,
     "createdAt": "2026-04-12T20:29:50.310Z",
-    "updatedAt": "2026-04-12T20:30:10.203Z",
+    "updatedAt": "2026-04-12T20:31:22.304Z",
     "channels": [
       {
         "platform": "discord",
@@ -35,9 +35,12 @@
         "sessionToken": null,
         "chatId": null,
         "channelId": "1492982813354492167",
-        "verified": false,
-        "testSentAt": "2026-04-12T20:30:10.203Z"
+        "verified": true,
+        "testSentAt": "2026-04-12T20:30:10.203Z",
+        "verifiedAt": "2026-04-12T20:31:22.304Z"
       }
-    ]
+    ],
+    "lastVerifiedPlatform": "discord",
+    "verifiedAt": "2026-04-12T20:31:22.304Z"
   }
 ]
