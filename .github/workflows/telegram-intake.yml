@@ -1,12 +1,12 @@
-name: GoalWatch - Daily Check
+name: Telegram Intake
 
 on:
   schedule:
-    - cron: "30 3 * * *"  # 9:00 AM IST
+    - cron: "*/15 * * * *"  # Every 15 minutes
   workflow_dispatch:
 
 jobs:
-  check-goals:
+  intake:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -20,21 +20,20 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Ensure state files exist
+      - name: Ensure data files exist
         run: |
-          test -f state.json || echo "{}" > state.json
           test -f monitors.json || echo "[]" > monitors.json
+          test -f state.json || echo "{}" > state.json
 
-      - name: Run goal checker
+      - name: Poll Telegram for /start messages
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-        run: node scripts/check-goals.js
+        run: node scripts/telegram-intake.js
 
-      - name: Commit state updates
+      - name: Commit changes if any
         run: |
           git config user.name "GoalWatch Bot"
           git config user.email "goalwatch-bot@users.noreply.github.com"
-          git add state.json
-          git diff --staged --quiet || git commit -m "chore: daily goal check [skip ci]"
+          git add monitors.json state.json
+          git diff --staged --quiet || git commit -m "chore: telegram intake update [skip ci]"
           git push

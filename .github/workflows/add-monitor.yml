@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: "add | verify_channel | deactivate"
+        description: "add | verify | deactivate"
         required: true
         default: "add"
       payload:
-        description: "JSON payload (monitor config or {id, platform})"
+        description: "JSON payload"
         required: true
 
 jobs:
@@ -43,18 +43,32 @@ jobs:
 
           if (action === 'add') {
             const existingIndex = monitors.findIndex(m => m.id === payload.id);
+            const existing = existingIndex >= 0 ? monitors[existingIndex] : null;
+            const now = new Date().toISOString();
+            const channels = (payload.channels || []).map(ch => {
+              const prev = existing && Array.isArray(existing.channels)
+                ? existing.channels.find(c => c.platform === ch.platform)
+                : null;
+              return {
+                platform: ch.platform,
+                userId: ch.userId || (prev && prev.userId) || null,
+                sessionToken: ch.sessionToken || (prev && prev.sessionToken) || null,
+                chatId: ch.chatId || (prev && prev.chatId) || null,
+                channelId: ch.channelId || (prev && prev.channelId) || null,
+                verified: Boolean(prev && prev.verified)
+              };
+            });
+
             const newMonitor = {
               id: payload.id,
               site: payload.site,
               goal: payload.goal,
+              sessionToken: payload.sessionToken || (existing && existing.sessionToken) || null,
               active: true,
-              verified: false,
-              createdAt: new Date().toISOString(),
-              channels: (payload.channels || []).map(ch => ({
-                platform: ch.platform,
-                config: ch.config,
-                verified: false
-              }))
+              verified: existing ? Boolean(existing.verified) : false,
+              createdAt: existing && existing.createdAt ? existing.createdAt : now,
+              updatedAt: now,
+              channels
             };
 
             if (existingIndex >= 0) {
@@ -65,15 +79,25 @@ jobs:
               console.log('Added monitor:', payload.id);
             }
 
-          } else if (action === 'verify_channel') {
+          } else if (action === 'verify') {
             const monitor = monitors.find(m => m.id === payload.id);
             if (!monitor) {
               throw new Error('Monitor not found: ' + payload.id);
+            }
+            if (!Array.isArray(monitor.channels)) {
+              throw new Error('Monitor has no channels: ' + payload.id);
             }
 
             const ch = monitor.channels.find(c => c.platform === payload.platform);
             if (!ch) {
               throw new Error('Channel not found for platform: ' + payload.platform);
+            }
+
+            if (payload.platform === 'telegram' && !ch.chatId) {
+              throw new Error('Telegram chatId missing. Ask user to tap Start bot first.');
+            }
+            if (payload.platform === 'discord' && !ch.channelId) {
+              throw new Error('Discord channelId missing. Send Discord test first.');
             }
 
             ch.verified = true;

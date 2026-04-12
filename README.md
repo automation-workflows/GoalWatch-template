@@ -1,117 +1,118 @@
-# ⚡ GoalWatch
+# GoalWatch
 
-Monitor any website for a natural language goal. Get notified when it happens.  
-**Zero server. Zero cost. Runs entirely on GitHub Actions.**
+GoalWatch is a zero-server website goal monitor powered by GitHub Actions.
 
 ## How it works
 
-```text
-Client fills form (index.html)
-  → monitors.json updated via GitHub API
-  → Test notification sent via GitHub Actions
-  → Client verifies ✅
-  → Daily cron checks goal using Pollinations.ai (free LLM, no API key)
-  → Notification sent to Discord / Telegram / Slack / Webhook
-```
+1. Client opens static frontend (`index.html`).
+2. Client enters site URL + natural-language goal.
+3. Client chooses Telegram or Discord.
+4. Frontend dispatches GitHub Actions workflows.
+5. Workflows store monitor data in `monitors.json`.
+6. Daily cron checks goals with Pollinations.ai and sends notifications.
 
-## Setup (5 minutes)
+## Features
 
-### 1. Fork / create this repo
+- Zero backend server
+- Static frontend (GitHub Pages compatible)
+- Storage in git files (`monitors.json`, `state.json`)
+- Daily goal checks at 9:00 AM IST
+- Telegram + Discord notifications
+- Pollinations.ai free model (`mistral`) with fallback numeric parsing
 
-Make it **private** (webhooks are stored in monitors.json).
+## Required GitHub Secrets
 
-### 2. Enable GitHub Actions
+- `TELEGRAM_BOT_TOKEN`
+- `DISCORD_BOT_TOKEN`
 
-Settings → Actions → Allow all actions.
+## Required PAT for frontend dispatch
 
-### 3. Create a PAT (Personal Access Token)
+Frontend dispatches `workflow_dispatch` directly to GitHub API.
+Use a token with:
 
-Settings → Developer Settings → Fine-grained tokens:
+- `Actions: Write`
+- `Contents: Write`
 
-- Repo: this repo only
-- Permissions: `Actions: Write`, `Contents: Write`
+The token is prompted once and saved in browser localStorage (`goalwatch_pat`).
 
-### 4. Verify repo settings in index.html
+## Frontend bot link config
 
-```js
-const GH_OWNER = "automation-workflows";   // use your org/user
-const GH_REPO  = "GoalWatch-template";     // use your actual repo name
-let GH_TOKEN = "";                         // app prompts on first Send Test
-```
+Update these constants in `index.html` for your deployment:
 
-> ⚠️ For a real product, proxy this through a Cloudflare Worker  
-> so the PAT isn't exposed in frontend JS.
+- `TELEGRAM_BOT_USERNAME`
+- `DISCORD_BOT_ID`
 
-### 5. Deploy index.html
+## Workflows
 
-- GitHub Pages (Settings → Pages → main branch)
-- Or Vercel / Netlify (drag and drop)
+- `.github/workflows/add-monitor.yml`
+  - `workflow_dispatch`
+  - actions: `add | verify | deactivate`
+  - updates `monitors.json`
 
-### 6. Done! Share the URL with your clients
+- `.github/workflows/telegram-intake.yml`
+  - schedule every 15 minutes + manual dispatch
+  - polls Telegram `/start <sessionToken>` via `getUpdates`
+  - resolves chat id and verifies Telegram channel
+  - sends `hi`
+
+- `.github/workflows/discord-verify.yml`
+  - `workflow_dispatch`
+  - opens DM channel from `user_id`
+  - sends `hi`
+  - stores Discord `channelId`
+
+- `.github/workflows/cron.yml`
+  - daily 9:00 AM IST (`30 3 * * *`) + manual dispatch
+  - scrapes site
+  - evaluates goal with Pollinations.ai
+  - sends notification
+  - updates `state.json`
 
 ## File structure
 
 ```text
-goalwatch/
-├── index.html              ← client-facing setup UI
-├── monitors.json           ← config database (auto-updated)
-├── state.json              ← tracks last check state (auto-updated)
+.
+├── index.html
+├── monitors.json
+├── state.json
 ├── scripts/
-│   ├── check-goals.js      ← main cron engine (Pollinations.ai)
-│   ├── notify.js           ← multi-platform notifications
-│   └── send-test.js        ← test notification sender
+│   ├── check-goals.js
+│   ├── notify.js
+│   ├── telegram-intake.js
+│   └── discord-verify.js
 └── .github/workflows/
-    ├── cron.yml            ← daily 9AM IST check
-    ├── verify.yml          ← sends test notification
-    └── add-monitor.yml     ← adds/updates monitors.json
+    ├── add-monitor.yml
+    ├── telegram-intake.yml
+    ├── discord-verify.yml
+    └── cron.yml
 ```
 
-## Supported notification platforms
+## Data schema
 
-| Platform | What you need |
-| --- | --- |
-| Discord | Webhook URL |
-| Telegram | Bot token + Chat ID |
-| Slack | Incoming webhook URL |
-| Custom | Any POST endpoint |
-
-## Custom Webhook Testing
-
-Fast way to test without your own backend:
-
-1. Open webhook.site and copy the unique URL.
-2. In setup step 2, select Webhook and paste that URL.
-3. Click Send Test Notification.
-4. Confirm the POST payload appears in webhook.site, then click verify.
-
-Payload sent to custom webhook:
-
-```json
-{
-  "title": "GoalWatch Test Notification",
-  "body": "...",
-  "goalMet": true,
-  "emoji": "✅",
-  "timestamp": "2026-04-12T00:00:00.000Z",
-  "source": "goalwatch"
-}
-```
-
-## monitors.json schema
+`monitors.json`
 
 ```json
 [
   {
     "id": "abc123",
-    "site": "cricbuzz.com/match/123",
-    "goal": "LSG scores more than 180 runs",
+    "site": "api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+    "goal": "Bitcoin price is above $50,000",
+    "sessionToken": "abc123",
     "active": true,
     "verified": false,
-    "createdAt": "2026-04-12T00:00:00.000Z",
+    "createdAt": "2026-04-13T00:00:00.000Z",
+    "updatedAt": "2026-04-13T00:00:00.000Z",
     "channels": [
       {
+        "platform": "telegram",
+        "sessionToken": "abc123",
+        "chatId": null,
+        "verified": false
+      },
+      {
         "platform": "discord",
-        "config": { "webhook": "https://discord.com/api/webhooks/..." },
+        "userId": "1234567890",
+        "channelId": null,
         "verified": false
       }
     ]
@@ -119,14 +120,15 @@ Payload sent to custom webhook:
 ]
 ```
 
-## LLM: Pollinations.ai
+`state.json`
 
-- Zero API key, zero auth, zero cost
-- Model: `mistral` (via Pollinations free tier)
-- Falls back to numeric parsing if LLM fails
-- Private mode enabled (responses not logged publicly)
-
-## Cron schedule
-
-Default: `30 3 * * *` = 9:00 AM IST daily.  
-Change in `.github/workflows/cron.yml`.
+```json
+{
+  "telegramLastUpdateId": 0,
+  "abc123": {
+    "met": false,
+    "reason": "one sentence",
+    "lastChecked": "2026-04-13T00:00:00.000Z"
+  }
+}
+```

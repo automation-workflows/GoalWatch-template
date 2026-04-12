@@ -1,108 +1,71 @@
-// notify.js — supports Discord, Telegram, Slack, Email (via webhook)
+// notify.js - Telegram + Discord senders for GoalWatch
 
-async function sendNotification(platform, config, message) {
-  const { title, body, goalMet } = message;
-  const emoji = goalMet ? "✅" : "⏳";
+function buildNotificationText(message) {
+  const emoji = message.goalMet ? "✅" : "⏳";
+  return [
+    `${emoji} ${message.goalMet ? "Goal Met!" : "Not yet"}`,
+    `Goal: ${message.goal}`,
+    `Status: ${message.reason}`,
+    `Site: ${message.site}`,
+    `Checked: ${message.checkedAtIst}`
+  ].join("\n");
+}
 
-  try {
-    switch (platform) {
-      case "discord":
-        await sendDiscord(config.webhook, emoji, title, body);
-        break;
-      case "telegram":
-        await sendTelegram(config.botToken, config.chatId, emoji, title, body);
-        break;
-      case "slack":
-        await sendSlack(config.webhook, emoji, title, body);
-        break;
-      case "custom_webhook":
-        await sendCustomWebhook(config.webhook, { title, body, goalMet, emoji });
-        break;
-      default:
-        console.error(`Unknown platform: ${platform}`);
-    }
-    console.log(`  ✓ Sent ${platform} notification`);
-  } catch (err) {
-    console.error(`  ✗ Failed to send ${platform} notification:`, err.message);
+async function sendTelegramNotification(chatId, message, token = process.env.TELEGRAM_BOT_TOKEN) {
+  if (!token) throw new Error("TELEGRAM_BOT_TOKEN is missing");
+  if (!chatId) throw new Error("Telegram chatId is missing");
+
+  const text = buildNotificationText(message);
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: String(chatId),
+      text
+    })
+  });
+
+  if (!res.ok) {
+    const details = await res.text();
+    throw new Error(`Telegram send failed: ${res.status} ${details}`);
   }
 }
 
-async function sendDiscord(webhookUrl, emoji, title, body) {
-  await fetch(webhookUrl, {
+async function sendDiscordNotification(channelId, message, token = process.env.DISCORD_BOT_TOKEN) {
+  if (!token) throw new Error("DISCORD_BOT_TOKEN is missing");
+  if (!channelId) throw new Error("Discord channelId is missing");
+
+  const content = buildNotificationText(message);
+  const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      embeds: [{
-        title: `${emoji} ${title}`,
-        description: body,
-        color: emoji === "✅" ? 0x00ff99 : 0xffa500,
-        footer: { text: "GoalWatch • Powered by GitHub Actions" },
-        timestamp: new Date().toISOString(),
-      }]
-    })
+    headers: {
+      "Authorization": `Bot ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ content })
   });
+
+  if (!res.ok) {
+    const details = await res.text();
+    throw new Error(`Discord send failed: ${res.status} ${details}`);
+  }
 }
 
-async function sendTelegram(botToken, chatId, emoji, title, body) {
-  const text = `${emoji} *${escapeMarkdown(title)}*\n\n${escapeMarkdown(body)}`;
-  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: "MarkdownV2"
-    })
-  });
+async function sendPlatformNotification(channel, message) {
+  if (channel.platform === "telegram") {
+    await sendTelegramNotification(channel.chatId, message);
+    return;
+  }
+  if (channel.platform === "discord") {
+    await sendDiscordNotification(channel.channelId, message);
+    return;
+  }
+  throw new Error(`Unsupported platform: ${channel.platform}`);
 }
 
-async function sendSlack(webhookUrl, emoji, title, body) {
-  await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      blocks: [
-        {
-          type: "header",
-          text: { type: "plain_text", text: `${emoji} ${title}` }
-        },
-        {
-          type: "section",
-          text: { type: "mrkdwn", text: body }
-        },
-        {
-          type: "context",
-          elements: [{ type: "mrkdwn", text: "GoalWatch • Powered by GitHub Actions" }]
-        }
-      ]
-    })
-  });
-}
-
-async function sendCustomWebhook(webhookUrl, payload) {
-  await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...payload,
-      timestamp: new Date().toISOString(),
-      source: "goalwatch"
-    })
-  });
-}
-
-// Send a plain test notification (for verification step)
-async function sendTestNotification(platform, config) {
-  const testMessage = {
-    title: "GoalWatch Test Notification",
-    body: "🎉 Your notification channel is working! Click **Verify** on the setup page to activate your monitor.",
-    goalMet: true
-  };
-  await sendNotification(platform, config, testMessage);
-}
-
-function escapeMarkdown(text) {
-  return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
-}
-
-module.exports = { sendNotification, sendTestNotification };
+module.exports = {
+  sendTelegramNotification,
+  sendDiscordNotification,
+  sendPlatformNotification,
+  buildNotificationText
+};

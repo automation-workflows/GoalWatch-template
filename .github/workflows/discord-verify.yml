@@ -1,12 +1,17 @@
-name: GoalWatch - Daily Check
+name: Discord Verify
 
 on:
-  schedule:
-    - cron: "30 3 * * *"  # 9:00 AM IST
   workflow_dispatch:
+    inputs:
+      monitor_id:
+        description: "Monitor ID"
+        required: true
+      user_id:
+        description: "Discord User ID"
+        required: true
 
 jobs:
-  check-goals:
+  verify:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -20,21 +25,21 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Ensure state files exist
+      - name: Ensure monitors.json exists
         run: |
-          test -f state.json || echo "{}" > state.json
           test -f monitors.json || echo "[]" > monitors.json
 
-      - name: Run goal checker
+      - name: Send Discord test message
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-        run: node scripts/check-goals.js
+          DISCORD_USER_ID: ${{ inputs.user_id }}
+          MONITOR_ID: ${{ inputs.monitor_id }}
+        run: node scripts/discord-verify.js
 
-      - name: Commit state updates
+      - name: Commit changes if any
         run: |
           git config user.name "GoalWatch Bot"
           git config user.email "goalwatch-bot@users.noreply.github.com"
-          git add state.json
-          git diff --staged --quiet || git commit -m "chore: daily goal check [skip ci]"
+          git add monitors.json
+          git diff --staged --quiet || git commit -m "chore: discord verify update [skip ci]"
           git push
