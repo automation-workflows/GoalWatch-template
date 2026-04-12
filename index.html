@@ -341,6 +341,40 @@
       }
     }
 
+    async function fetchMonitors() {
+      const token = ensureToken();
+      const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/monitors.json?ref=${GH_REF}`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/vnd.github+json"
+        }
+      });
+
+      if (!res.ok) {
+        const details = await res.text();
+        throw new Error(`Failed to read monitors.json: ${res.status} ${details}`);
+      }
+
+      const payload = await res.json();
+      const decoded = atob((payload.content || "").replace(/\n/g, ""));
+      const parsed = JSON.parse(decoded || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    }
+
+    async function waitForDiscordChannelId(targetMonitorId, timeoutMs = 60000, intervalMs = 3000) {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const monitors = await fetchMonitors();
+        const monitor = monitors.find((m) => m.id === targetMonitorId);
+        if (monitor && Array.isArray(monitor.channels)) {
+          const discord = monitor.channels.find((c) => c.platform === "discord");
+          if (discord && discord.channelId) return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+      return false;
+    }
+
     async function sendTest() {
       const sendBtn = document.getElementById("sendTestBtn");
       const verifyBtn = document.getElementById("verifyBtn");
@@ -397,6 +431,24 @@
       const verifyBtn = document.getElementById("verifyBtn");
       verifyBtn.disabled = true;
       try {
+        if (selectedPlatform === "discord") {
+          const userId = document.getElementById("discordUserId").value.trim();
+          if (!userId) {
+            throw new Error("Discord User ID is required before verification.");
+          }
+
+          showStatus("verifyStatus", "loading", "Ensuring Discord DM channel is ready...");
+          await triggerWorkflow("discord-verify.yml", {
+            monitor_id: monitorId,
+            user_id: userId
+          });
+
+          const ready = await waitForDiscordChannelId(monitorId);
+          if (!ready) {
+            throw new Error("Discord DM channel not ready yet. Wait a bit and click Yes I got it again.");
+          }
+        }
+
         await triggerWorkflow("add-monitor.yml", {
           action: "verify",
           payload: JSON.stringify({
