@@ -344,6 +344,18 @@
     .console-row:last-child { border-bottom: none; }
     .console-time { color: #64748b; margin-right: 8px; }
 
+    .last-activation {
+      margin-top: 18px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.08);
+      font-size: 0.78rem;
+      color: #9cc7e6;
+      line-height: 1.6;
+    }
+    .last-activation strong { color: var(--accent2); }
+
     @media (max-width: 640px) {
       .notify-panel {
         width: calc(100vw - 26px);
@@ -518,6 +530,10 @@
         <div class="verify-badge">⚡ GoalWatch ID: <span id="finalId"></span></div>
         <div style="height:24px"></div>
         <button class="btn" onclick="resetForm()">+ Add Another Monitor</button>
+      </div>
+      <div class="last-activation" id="lastActivationBox">
+        <strong>Last Activated Monitor:</strong><br />
+        No monitor activated yet on this browser.
       </div>
     </div>
 
@@ -695,10 +711,19 @@
           action: "verify_channel",
           payload: JSON.stringify({ id: monitorId, platform: selectedPlatform })
         });
-
+        
         appendLog(`Monitor ${monitorId} verified for ${selectedPlatform}.`);
         pushBell(`Monitor ${monitorId} activated`);
         showStatus("verifyStatus", "success", "Monitor activated!");
+
+        // Persist lightweight activation record in browser for quick user history.
+        localStorage.setItem("goalwatch_last_activated", JSON.stringify({
+          id: monitorId,
+          platform: selectedPlatform,
+          verifiedAt: new Date().toISOString()
+        }));
+        renderLastActivated();
+
         await sleep(1500);
 
         document.getElementById("finalId").textContent = monitorId;
@@ -773,6 +798,38 @@
       renderBellQueue();
     }
 
+    function renderLastActivated() {
+      const el = document.getElementById("lastActivationBox");
+      if (!el) return;
+
+      const raw = localStorage.getItem("goalwatch_last_activated");
+      if (!raw) {
+        el.innerHTML = "<strong>Last Activated Monitor:</strong><br />No monitor activated yet on this browser.";
+        return;
+      }
+
+      try {
+        const data = JSON.parse(raw);
+        if (!data || !data.id) {
+          el.innerHTML = "<strong>Last Activated Monitor:</strong><br />No monitor activated yet on this browser.";
+          return;
+        }
+
+        const when = data.verifiedAt
+          ? new Date(data.verifiedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+          : "Unknown";
+
+        el.innerHTML = [
+          "<strong>Last Activated Monitor:</strong>",
+          `ID: ${data.id}`,
+          `Platform: ${data.platform || "Unknown"}`,
+          `Verified: ${when}`
+        ].join("<br />");
+      } catch {
+        el.innerHTML = "<strong>Last Activated Monitor:</strong><br />Could not read saved activation data.";
+      }
+    }
+
     async function runDemoFlow() {
       const site = document.getElementById("siteUrl").value.trim();
       const goal = document.getElementById("goalText").value.trim();
@@ -828,6 +885,7 @@
     }
 
     renderBellQueue();
+    renderLastActivated();
   </script>
 </body>
 </html>

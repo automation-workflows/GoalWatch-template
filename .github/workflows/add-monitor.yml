@@ -77,7 +77,13 @@ jobs:
             }
 
             ch.verified = true;
+            ch.verifiedAt = new Date().toISOString();
             monitor.verified = monitor.channels.every(c => c.verified);
+            monitor.lastVerifiedPlatform = payload.platform;
+            monitor.updatedAt = new Date().toISOString();
+            if (monitor.verified) {
+              monitor.verifiedAt = new Date().toISOString();
+            }
             console.log('Verified channel:', payload.platform, 'for', payload.id);
 
           } else if (action === 'deactivate') {
