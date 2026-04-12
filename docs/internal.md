@@ -52,6 +52,13 @@ Each channel can contain:
 - Sends a `hi` DM.
 - Stores the returned `channelId`.
 
+### `repair-monitors.yml`
+
+- Repairs legacy verification fields in `monitors.json`.
+- Infers channel verification when IDs already exist.
+- Recomputes top-level `monitor.verified` consistently.
+- Supports dry-run execution for safe previews.
+
 ### `cron.yml`
 
 - Runs daily at 9:00 AM IST.
