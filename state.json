@@ -1,1 +1,7 @@
-{}
+{
+  "l1ac906": {
+    "met": false,
+    "reason": "{\"error\":\"Model not found: mistral. This is our legacy API - for the full model list and new features, visit https://enter.pollinations.ai\",",
+    "lastChecked": "2026-04-12T20:35:08.486Z"
+  }
+}
