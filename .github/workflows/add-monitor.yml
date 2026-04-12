@@ -1,0 +1,104 @@
+name: GoalWatch - Add / Update Monitor
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "add | verify_channel | deactivate"
+        required: true
+        default: "add"
+      payload:
+        description: "JSON payload (monitor config or {id, platform})"
+        required: true
+
+jobs:
+  update-monitors:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Ensure data files exist
+        run: |
+          test -f monitors.json || echo "[]" > monitors.json
+
+      - name: Process action
+        env:
+          ACTION: ${{ inputs.action }}
+          PAYLOAD: ${{ inputs.payload }}
+        run: |
+          node -e "
+          const fs = require('fs');
+          const action = process.env.ACTION;
+          const payload = JSON.parse(process.env.PAYLOAD);
+          const monitors = JSON.parse(fs.readFileSync('monitors.json', 'utf8'));
+
+          if (action === 'add') {
+            const existingIndex = monitors.findIndex(m => m.id === payload.id);
+            const newMonitor = {
+              id: payload.id,
+              site: payload.site,
+              goal: payload.goal,
+              active: true,
+              verified: false,
+              createdAt: new Date().toISOString(),
+              channels: (payload.channels || []).map(ch => ({
+                platform: ch.platform,
+                config: ch.config,
+                verified: false
+              }))
+            };
+
+            if (existingIndex >= 0) {
+              monitors[existingIndex] = newMonitor;
+              console.log('Updated existing monitor:', payload.id);
+            } else {
+              monitors.push(newMonitor);
+              console.log('Added monitor:', payload.id);
+            }
+
+          } else if (action === 'verify_channel') {
+            const monitor = monitors.find(m => m.id === payload.id);
+            if (!monitor) {
+              throw new Error('Monitor not found: ' + payload.id);
+            }
+
+            const ch = monitor.channels.find(c => c.platform === payload.platform);
+            if (!ch) {
+              throw new Error('Channel not found for platform: ' + payload.platform);
+            }
+
+            ch.verified = true;
+            monitor.verified = monitor.channels.every(c => c.verified);
+            console.log('Verified channel:', payload.platform, 'for', payload.id);
+
+          } else if (action === 'deactivate') {
+            const monitor = monitors.find(m => m.id === payload.id);
+            if (!monitor) {
+              throw new Error('Monitor not found: ' + payload.id);
+            }
+            monitor.active = false;
+            console.log('Deactivated:', payload.id);
+
+          } else {
+            throw new Error('Unknown action: ' + action);
+          }
+
+          fs.writeFileSync('monitors.json', JSON.stringify(monitors, null, 2));
+          "
+
+      - name: Commit changes
+        run: |
+          git config user.name "GoalWatch Bot"
+          git config user.email "goalwatch-bot@users.noreply.github.com"
+          git add monitors.json
+          git diff --staged --quiet || git commit -m "feat: monitor update (${{ inputs.action }}) [skip ci]"
+          git push

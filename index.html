@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoalWatch — Setup</title>
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #161b25;
+      --border: #252d3d;
+      --accent: #4ade80;
+      --accent2: #38bdf8;
+      --warn: #fbbf24;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+    .logo {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+    .tagline { color: var(--muted); font-size: 0.82rem; margin-bottom: 40px; }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      gap: 0;
+      margin-bottom: 32px;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 16px; left: 16px; right: 16px;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      position: relative;
+      z-index: 1;
+    }
+    .step-dot {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      transition: all 0.3s;
+    }
+    .step.active .step-dot { border-color: var(--accent); color: var(--accent); }
+    .step.done .step-dot { background: var(--accent); border-color: var(--accent); color: #000; }
+    .step-label { font-size: 0.68rem; color: var(--muted); text-align: center; }
+    .step.active .step-label { color: var(--accent); }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      width: 100%;
+      max-width: 520px;
+    }
+    .card-title {
+      font-size: 1rem;
+      color: var(--accent2);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Form */
+    label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 16px;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent2); }
+    textarea { resize: vertical; min-height: 70px; }
+
+    /* Platforms */
+    .platforms {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .platform-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.82rem;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .platform-btn:hover { border-color: var(--accent2); }
+    .platform-btn.selected { border-color: var(--accent); color: var(--accent); }
+    .platform-icon { font-size: 1.1rem; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: bold;
+      padding: 11px 22px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      width: 100%;
+      justify-content: center;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn.warn { background: var(--warn); }
+
+    /* Status */
+    .status-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 12px;
+      display: none;
+    }
+    .status-box.show { display: block; }
+    .status-box.success { border-color: var(--accent); color: var(--accent); }
+    .status-box.error { border-color: #f87171; color: #f87171; }
+    .status-box.loading { border-color: var(--accent2); color: var(--accent2); }
+
+    /* Config input area */
+    .config-area { display: none; }
+    .config-area.show { display: block; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+    .verify-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(74, 222, 128, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin-top: 8px;
+    }
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+    small { color: var(--muted); font-size: 0.74rem; }
+
+    .notify-bell {
+      position: fixed;
+      right: 18px;
+      top: 18px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      font-size: 1.1rem;
+    }
+    .notify-badge {
+      position: absolute;
+      right: -2px;
+      top: -4px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.68rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px;
+      border: 1px solid #fff2;
+    }
+    .notify-panel {
+      position: fixed;
+      right: 18px;
+      top: 68px;
+      width: 320px;
+      max-height: 360px;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      display: none;
+      z-index: 10;
+    }
+    .notify-panel.show { display: block; }
+    .notify-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      color: var(--accent2);
+    }
+    .tiny-btn {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.72rem;
+      cursor: pointer;
+    }
+    .notify-item {
+      font-size: 0.74rem;
+      color: #93a4bf;
+      border-bottom: 1px dashed rgba(100, 116, 139, 0.25);
+      padding: 6px 0;
+      line-height: 1.4;
+    }
+    .notify-item:last-child { border-bottom: none; }
+
+    .test-flow-box {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(74, 222, 128, 0.35);
+      background: rgba(74, 222, 128, 0.06);
+    }
+    .flow-stage {
+      margin-top: 10px;
+      font-size: 0.78rem;
+      color: var(--accent2);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: rgba(56, 189, 248, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: none;
+    }
+
+    .test-mode-note {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      margin-bottom: 14px;
+    }
+    .bell-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .bell {
+      font-size: 1.05rem;
+      filter: grayscale(1);
+      transition: all 0.25s;
+    }
+    .bell-wrap.ringing .bell {
+      filter: grayscale(0);
+      transform: rotate(-10deg) scale(1.08);
+    }
+    .bell-wrap.ringing { color: var(--accent); }
+    .test-console {
+      margin-top: 10px;
+      background: linear-gradient(180deg, rgba(13, 15, 20, 0.95), rgba(10, 12, 17, 0.95));
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 110px;
+      max-height: 190px;
+      overflow-y: auto;
+      font-size: 0.76rem;
+    }
+    .console-row {
+      color: #94a3b8;
+      line-height: 1.5;
+      border-bottom: 1px dashed rgba(100, 116, 139, 0.25);
+      padding: 4px 0;
+      word-break: break-word;
+    }
+    .console-row:last-child { border-bottom: none; }
+    .console-time { color: #64748b; margin-right: 8px; }
+
+    @media (max-width: 640px) {
+      .notify-panel {
+        width: calc(100vw - 26px);
+        right: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="notify-bell" id="notifyBell" onclick="toggleBellPanel()" title="Test notifications">
+    🔔
+    <span class="notify-badge" id="notifyBadge">0</span>
+  </button>
+  <div class="notify-panel" id="notifyPanel">
+    <div class="notify-head">
+      <span>Test Queue</span>
+      <button class="tiny-btn" onclick="clearBellQueue()">Clear</button>
+    </div>
+    <div id="notifyList"></div>
+  </div>
+
+  <div class="logo">⚡ GOALWATCH</div>
+  <div class="tagline">Set it. Forget it. Get notified when it happens.</div>
+
+  <!-- Step Indicator -->
+  <div class="steps" id="stepIndicator">
+    <div class="step active" id="step-dot-1">
+      <div class="step-dot">1</div>
+      <div class="step-label">What to<br>watch</div>
+    </div>
+    <div class="step" id="step-dot-2">
+      <div class="step-dot">2</div>
+      <div class="step-label">Where to<br>notify</div>
+    </div>
+    <div class="step" id="step-dot-3">
+      <div class="step-dot">3</div>
+      <div class="step-label">Test &<br>verify</div>
+    </div>
+    <div class="step" id="step-dot-4">
+      <div class="step-dot">✓</div>
+      <div class="step-label">Active!</div>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <!-- STEP 1: Site + Goal -->
+    <div class="step-panel active" id="panel-1">
+      <div class="card-title">🎯 What do you want to watch?</div>
+
+      <label>Website URL</label>
+      <input type="text" id="siteUrl" placeholder="cricbuzz.com/cricket-match/12345" />
+
+      <label>Your Goal (plain English)</label>
+      <textarea id="goalText" placeholder="e.g. LSG scores more than 180 runs today&#10;e.g. Adani stock crosses +5% today&#10;e.g. iPhone 16 price drops below ₹70,000"></textarea>
+
+      <small>GoalWatch checks this daily and notifies you when the goal is met.</small>
+
+      <div style="height:16px"></div>
+      <button class="btn" onclick="goToStep2()">Continue →</button>
+    </div>
+
+    <!-- STEP 2: Platform -->
+    <div class="step-panel" id="panel-2">
+      <div class="card-title">🔔 Where should we notify you?</div>
+
+      <div class="test-mode-note">
+        Real mode: selected platform config is used for actual notifications.
+      </div>
+
+      <div class="platforms">
+        <button class="platform-btn" onclick="selectPlatform('discord', this)">
+          <span class="platform-icon">💬</span> Discord
+        </button>
+        <button class="platform-btn" onclick="selectPlatform('telegram', this)">
+          <span class="platform-icon">✈️</span> Telegram
+        </button>
+        <button class="platform-btn" onclick="selectPlatform('slack', this)">
+          <span class="platform-icon">⚡</span> Slack
+        </button>
+        <button class="platform-btn" onclick="selectPlatform('custom_webhook', this)">
+          <span class="platform-icon">🔗</span> Webhook
+        </button>
+      </div>
+
+      <!-- Discord config -->
+      <div class="config-area" id="config-discord">
+        <label>Discord Webhook URL</label>
+        <input type="text" id="discord-webhook" placeholder="https://discord.com/api/webhooks/..." />
+        <small>Server Settings → Integrations → Webhooks → New Webhook</small>
+      </div>
+
+      <!-- Telegram config -->
+      <div class="config-area" id="config-telegram">
+        <label>Bot Token</label>
+        <input type="text" id="telegram-token" placeholder="1234567890:AABBccDDeeFFggHH..." />
+        <label>Chat ID</label>
+        <input type="text" id="telegram-chatid" placeholder="-100123456789 or your user ID" />
+        <small>Create a bot via @BotFather, get chat ID via @userinfobot</small>
+      </div>
+
+      <!-- Slack config -->
+      <div class="config-area" id="config-slack">
+        <label>Slack Webhook URL</label>
+        <input type="text" id="slack-webhook" placeholder="https://hooks.slack.com/services/..." />
+        <small>api.slack.com → Your Apps → Incoming Webhooks</small>
+      </div>
+
+      <!-- Custom webhook -->
+      <div class="config-area" id="config-custom_webhook">
+        <label>Webhook URL (POST)</label>
+        <input type="text" id="custom-webhook" placeholder="https://your-server.com/webhook" />
+        <small>We'll POST JSON: {title, body, goalMet, timestamp}</small>
+      </div>
+
+      <div class="test-flow-box">
+        <div style="font-size:0.8rem;color:var(--accent);margin-bottom:8px">🧪 Run Demo Flow (UI Only)</div>
+        <small>Uses Step 1 data and simulates stages in UI + right bell queue. No real notification is sent.</small>
+        <div style="height:10px"></div>
+        <button class="btn warn" id="runFlowBtn" onclick="runDemoFlow()">Run Demo Flow (UI Only)</button>
+        <div class="flow-stage" id="flowStage"></div>
+        <div class="test-console" id="flowLog" style="margin-top:10px;min-height:90px;max-height:150px">
+          <div class="console-row"><span class="console-time">INIT</span>Flow logger ready.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn secondary" onclick="goToStep(1)">← Back</button>
+        <button class="btn" onclick="goToStep3()">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: Test + Verify -->
+    <div class="step-panel" id="panel-3">
+      <div class="card-title">✅ Test Real Notification</div>
+
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:20px">
+        We'll send a test message to your channel. Once you receive it, click <strong style="color:var(--text)">I received it ✓</strong> to activate your monitor.
+      </p>
+
+      <button class="btn warn" id="sendTestBtn" onclick="sendTest()">
+        📤 Send Real Test Notification
+      </button>
+
+      <div class="status-box" id="testStatus"></div>
+
+      <div class="test-console" id="testConsole">
+        <div class="console-row"><span class="console-time">INIT</span>Delivery logger ready.</div>
+      </div>
+
+      <hr class="divider" />
+
+      <button class="btn" id="verifyBtn" onclick="markVerified()" disabled>
+        ✓ I received it — Activate Monitor
+      </button>
+
+      <div class="status-box" id="verifyStatus"></div>
+
+      <div style="height:12px"></div>
+      <button class="btn secondary" onclick="goToStep(2)">← Back</button>
+    </div>
+
+    <!-- STEP 4: Done -->
+    <div class="step-panel" id="panel-4">
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:3rem;margin-bottom:12px">🎉</div>
+        <div style="font-size:1.1rem;color:var(--accent);margin-bottom:8px">Monitor is Active!</div>
+        <div style="font-size:0.84rem;color:var(--muted);margin-bottom:20px">
+          You'll get a daily notification about your goal.<br/>We check every day at <strong style="color:var(--text)">9:00 AM IST</strong>.
+        </div>
+        <div class="verify-badge">⚡ GoalWatch ID: <span id="finalId"></span></div>
+        <div style="height:24px"></div>
+        <button class="btn" onclick="resetForm()">+ Add Another Monitor</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Config ───────────────────────────────────────────────────────────────
+    const GH_OWNER = "YOUR_GITHUB_USERNAME";   // ← change this
+    const GH_REPO  = "event";                  // ← change this
+    const GH_TOKEN = "";                       // ← leave empty for public repo read
+    const GH_REF   = "main";                   // branch used for workflow dispatch
+    // Note: workflow_dispatch needs a PAT with repo scope
+    // Store it as: const GH_TOKEN = prompt("Enter your GitHub token") or use env
+    // For a real product, proxy this through a tiny Cloudflare Worker
+
+    // ── State ────────────────────────────────────────────────────────────────
+    let currentStep = 1;
+    let selectedPlatform = null;
+    let monitorId = null;
+    let bellQueue = [];
+
+    function generateId() {
+      return Math.random().toString(36).slice(2, 9);
+    }
+
+    // ── Step navigation ───────────────────────────────────────────────────────
+    function goToStep(n) {
+      document.querySelectorAll(".step-panel").forEach(p => p.classList.remove("active"));
+      document.getElementById(`panel-${n}`).classList.add("active");
+
+      document.querySelectorAll(".step").forEach((s, i) => {
+        s.classList.remove("active", "done");
+        if (i + 1 < n) s.classList.add("done");
+        if (i + 1 === n) s.classList.add("active");
+      });
+
+      currentStep = n;
+    }
+
+    function goToStep2() {
+      const site = document.getElementById("siteUrl").value.trim();
+      const goal = document.getElementById("goalText").value.trim();
+      if (!site || !goal) { alert("Please fill in both fields."); return; }
+      goToStep(2);
+    }
+
+    function goToStep3() {
+      if (!selectedPlatform) { alert("Please select a platform."); return; }
+      if (!getPlatformConfig(selectedPlatform)) return;
+      goToStep(3);
+    }
+
+    function selectPlatform(platform, btn) {
+      selectedPlatform = platform;
+      document.querySelectorAll(".platform-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      document.querySelectorAll(".config-area").forEach(a => a.classList.remove("show"));
+      document.getElementById(`config-${platform}`).classList.add("show");
+    }
+
+    function getPlatformConfig(platform = selectedPlatform) {
+      if (platform === "discord") {
+        const url = document.getElementById("discord-webhook").value.trim();
+        if (!url.startsWith("https://discord.com")) { alert("Invalid Discord webhook URL."); return null; }
+        return { webhook: url };
+      }
+      if (platform === "telegram") {
+        const token = document.getElementById("telegram-token").value.trim();
+        const chatId = document.getElementById("telegram-chatid").value.trim();
+        if (!token || !chatId) { alert("Fill in both Telegram fields."); return null; }
+        return { botToken: token, chatId };
+      }
+      if (platform === "slack") {
+        const url = document.getElementById("slack-webhook").value.trim();
+        if (!url.startsWith("https://hooks.slack.com")) { alert("Invalid Slack webhook URL."); return null; }
+        return { webhook: url };
+      }
+      if (platform === "custom_webhook") {
+        const url = document.getElementById("custom-webhook").value.trim();
+        if (!url.startsWith("http")) { alert("Enter a valid URL."); return null; }
+        return { webhook: url };
+      }
+      return null;
+    }
+
+    // ── GitHub Actions API ────────────────────────────────────────────────────
+    async function triggerWorkflow(workflow, inputs) {
+      const res = await fetch(
+        `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/workflows/${workflow}/dispatches`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GH_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ ref: GH_REF, inputs })
+        }
+      );
+      if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+    }
+
+    // ── Step 3: Send test ─────────────────────────────────────────────────────
+    async function sendTest() {
+      const btn = document.getElementById("sendTestBtn");
+      const status = document.getElementById("testStatus");
+
+      btn.disabled = true;
+      btn.textContent = "⏳ Sending...";
+      appendLog(`Starting real send test for ${selectedPlatform}...`);
+      pushBell(`Queued real send test for ${selectedPlatform}`);
+      showStatus("testStatus", "loading", "Triggering GitHub Action to send your test notification...");
+
+      try {
+        monitorId = generateId();
+        const config = getPlatformConfig(selectedPlatform);
+
+        // First: add the monitor to monitors.json via GH Action
+        await triggerWorkflow("add-monitor.yml", {
+          action: "add",
+          payload: JSON.stringify({
+            id: monitorId,
+            site: document.getElementById("siteUrl").value.trim(),
+            goal: document.getElementById("goalText").value.trim(),
+            channels: [{ platform: selectedPlatform, config }]
+          })
+        });
+        appendLog(`Monitor added: ${monitorId}`);
+        pushBell(`Monitor ${monitorId} created`);
+
+        // Wait a moment for the first action to commit
+        await sleep(4000);
+        appendLog("Triggering verify workflow...");
+        pushBell("Verify workflow queued");
+
+        // Then trigger the test notification
+        await triggerWorkflow("verify.yml", {
+          monitor_id: monitorId,
+          platform: selectedPlatform
+        });
+
+        appendLog("Verify workflow triggered. Expected webhook POST in ~30 seconds.");
+        pushBell(`Test dispatch sent for ${selectedPlatform}`);
+        showStatus("testStatus", "success", `✅ Test sent to ${selectedPlatform}. It may take ~30 seconds.`);
+        document.getElementById("verifyBtn").disabled = false;
+      } catch (err) {
+        appendLog(`Error: ${err.message}`);
+        pushBell(`Error: ${err.message}`);
+        showStatus("testStatus", "error", `Error: ${err.message}. Check your GitHub token and repo settings.`);
+        btn.disabled = false;
+        btn.textContent = "� Send Test Notification";
+      }
+    }
+
+    // ── Step 3: Mark verified ─────────────────────────────────────────────────
+    async function markVerified() {
+      const btn = document.getElementById("verifyBtn");
+      btn.disabled = true;
+      btn.textContent = "⏳ Activating...";
+      showStatus("verifyStatus", "loading", "Marking your channel as verified...");
+
+      try {
+        await triggerWorkflow("add-monitor.yml", {
+          action: "verify_channel",
+          payload: JSON.stringify({ id: monitorId, platform: selectedPlatform })
+        });
+
+        appendLog(`Monitor ${monitorId} verified for ${selectedPlatform}.`);
+        pushBell(`Monitor ${monitorId} activated`);
+        showStatus("verifyStatus", "success", "Monitor activated!");
+        await sleep(1500);
+
+        document.getElementById("finalId").textContent = monitorId;
+        goToStep(4);
+      } catch (err) {
+        showStatus("verifyStatus", "error", `Error: ${err.message}`);
+        btn.disabled = false;
+        btn.textContent = "✓ I received it — Activate Monitor";
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function showStatus(id, type, msg) {
+      const el = document.getElementById(id);
+      el.className = `status-box show ${type}`;
+      el.textContent = msg;
+    }
+
+    function appendLog(message) {
+      const now = new Date();
+      const ts = now.toLocaleTimeString("en-IN", { hour12: false });
+      const row = document.createElement("div");
+      row.className = "console-row";
+      row.innerHTML = `<span class="console-time">${ts}</span>${message}`;
+      const consoleEl = document.getElementById("testConsole");
+      consoleEl.appendChild(row);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function appendFlowLog(message) {
+      const now = new Date();
+      const ts = now.toLocaleTimeString("en-IN", { hour12: false });
+      const row = document.createElement("div");
+      row.className = "console-row";
+      row.innerHTML = `<span class="console-time">${ts}</span>${message}`;
+      const el = document.getElementById("flowLog");
+      el.appendChild(row);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function setFlowStage(text) {
+      const el = document.getElementById("flowStage");
+      el.style.display = "block";
+      el.textContent = text;
+    }
+
+    function pushBell(message) {
+      const ts = new Date().toLocaleTimeString("en-IN", { hour12: false });
+      bellQueue.unshift({ ts, message });
+      bellQueue = bellQueue.slice(0, 20);
+      renderBellQueue();
+    }
+
+    function renderBellQueue() {
+      document.getElementById("notifyBadge").textContent = String(bellQueue.length);
+      const list = document.getElementById("notifyList");
+      if (bellQueue.length === 0) {
+        list.innerHTML = '<div class="notify-item">No test messages yet.</div>';
+        return;
+      }
+      list.innerHTML = bellQueue
+        .map((item) => `<div class="notify-item"><span class="console-time">${item.ts}</span>${item.message}</div>`)
+        .join("");
+    }
+
+    function toggleBellPanel() {
+      document.getElementById("notifyPanel").classList.toggle("show");
+    }
+
+    function clearBellQueue() {
+      bellQueue = [];
+      renderBellQueue();
+    }
+
+    async function runDemoFlow() {
+      const site = document.getElementById("siteUrl").value.trim();
+      const goal = document.getElementById("goalText").value.trim();
+      if (!site || !goal) {
+        alert("Fill Step 1 fields first.");
+        return;
+      }
+
+      const btn = document.getElementById("runFlowBtn");
+      btn.disabled = true;
+      setFlowStage("Stage 1/4: Preparing payload from Step 1...");
+      appendFlowLog("Collected site + goal from Step 1.");
+      pushBell("Demo flow started");
+      await sleep(600);
+
+      setFlowStage("Stage 2/4: Queueing test event...");
+      appendFlowLog("Simulated queue accepted test message.");
+      pushBell("Demo event queued");
+      await sleep(800);
+
+      setFlowStage("Stage 3/4: Dispatching simulated notification...");
+      appendFlowLog(`Simulated notify payload: { site: "${site}", goal: "${goal}" }`);
+      pushBell("Demo dispatch completed");
+      await sleep(700);
+
+      setFlowStage("Stage 4/4: Delivered to UI bell queue.");
+      appendFlowLog("Done. Refresh clears this demo history.");
+      pushBell("Demo flow delivered");
+      btn.disabled = false;
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function resetForm() {
+      document.getElementById("siteUrl").value = "";
+      document.getElementById("goalText").value = "";
+      document.querySelectorAll(".platform-btn").forEach(b => b.classList.remove("selected"));
+      document.querySelectorAll(".config-area").forEach(a => a.classList.remove("show"));
+      selectedPlatform = null;
+      monitorId = null;
+      document.getElementById("verifyBtn").disabled = true;
+      document.getElementById("sendTestBtn").disabled = false;
+      document.getElementById("sendTestBtn").textContent = "📤 Send Real Test Notification";
+      document.getElementById("testConsole").innerHTML = '<div class="console-row"><span class="console-time">INIT</span>Delivery logger ready.</div>';
+      document.getElementById("flowLog").innerHTML = '<div class="console-row"><span class="console-time">INIT</span>Flow logger ready.</div>';
+      document.getElementById("flowStage").style.display = "none";
+      bellQueue = [];
+      renderBellQueue();
+      ["testStatus","verifyStatus"].forEach(id => {
+        document.getElementById(id).className = "status-box";
+      });
+      goToStep(1);
+    }
+
+    renderBellQueue();
+  </script>
+</body>
+</html>
