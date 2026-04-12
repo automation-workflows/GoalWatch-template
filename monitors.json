@@ -42,5 +42,25 @@
     ],
     "lastVerifiedPlatform": "discord",
     "verifiedAt": "2026-04-12T20:31:22.304Z"
+  },
+  {
+    "id": "iwaar0e",
+    "site": "api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+    "goal": "Bitcoin price is above $50,000",
+    "sessionToken": "62a67ql",
+    "active": true,
+    "verified": false,
+    "createdAt": "2026-04-12T21:05:58.219Z",
+    "updatedAt": "2026-04-12T21:05:58.219Z",
+    "channels": [
+      {
+        "platform": "discord",
+        "userId": "768043546585726986",
+        "sessionToken": null,
+        "chatId": null,
+        "channelId": null,
+        "verified": false
+      }
+    ]
   }
 ]
