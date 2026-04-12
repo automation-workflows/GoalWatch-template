@@ -525,12 +525,11 @@
 
   <script>
     // ── Config ───────────────────────────────────────────────────────────────
-    const GH_OWNER = "YOUR_GITHUB_USERNAME";   // ← change this
-    const GH_REPO  = "event";                  // ← change this
-    const GH_TOKEN = "";                       // ← leave empty for public repo read
+    const GH_OWNER = "automation-workflows";
+    const GH_REPO  = "GoalWatch-template";
+    let GH_TOKEN = localStorage.getItem("goalwatch_pat") || "";
     const GH_REF   = "main";                   // branch used for workflow dispatch
-    // Note: workflow_dispatch needs a PAT with repo scope
-    // Store it as: const GH_TOKEN = prompt("Enter your GitHub token") or use env
+    // Note: workflow_dispatch needs a PAT with Actions:Write + Contents:Write
     // For a real product, proxy this through a tiny Cloudflare Worker
 
     // ── State ────────────────────────────────────────────────────────────────
@@ -604,19 +603,32 @@
     }
 
     // ── GitHub Actions API ────────────────────────────────────────────────────
+    function ensureGitHubToken() {
+      if (GH_TOKEN) return GH_TOKEN;
+      const token = prompt("Enter GitHub PAT (repo-scoped, Actions:Write + Contents:Write)");
+      if (!token) throw new Error("GitHub token is required to trigger workflows.");
+      GH_TOKEN = token.trim();
+      localStorage.setItem("goalwatch_pat", GH_TOKEN);
+      return GH_TOKEN;
+    }
+
     async function triggerWorkflow(workflow, inputs) {
+      const token = ensureGitHubToken();
       const res = await fetch(
         `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/workflows/${workflow}/dispatches`,
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${GH_TOKEN}`,
+            "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({ ref: GH_REF, inputs })
         }
       );
-      if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+      if (!res.ok) {
+        const details = await res.text();
+        throw new Error(`GitHub API error: ${res.status} ${details}`);
+      }
     }
 
     // ── Step 3: Send test ─────────────────────────────────────────────────────

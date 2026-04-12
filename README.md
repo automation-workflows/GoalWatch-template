@@ -31,12 +31,12 @@ Settings → Developer Settings → Fine-grained tokens:
 - Repo: this repo only
 - Permissions: `Actions: Write`, `Contents: Write`
 
-### 4. Update index.html
+### 4. Verify repo settings in index.html
 
 ```js
-const GH_OWNER = "your-username";   // line ~175
-const GH_REPO  = "event";           // use your actual repo name
-const GH_TOKEN = "ghp_xxxx";        // your PAT
+const GH_OWNER = "automation-workflows";   // use your org/user
+const GH_REPO  = "GoalWatch-template";     // use your actual repo name
+let GH_TOKEN = "";                         // app prompts on first Send Test
 ```
 
 > ⚠️ For a real product, proxy this through a Cloudflare Worker  
