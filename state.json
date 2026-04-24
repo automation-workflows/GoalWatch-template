@@ -1,12 +1,12 @@
 {
   "l1ac906": {
     "met": false,
-    "reason": "The current Ethereum price of $33.24 is below the $100 threshold.",
-    "lastChecked": "2026-04-23T05:41:13.284Z"
+    "reason": "The current Ethereum price of $33.63 is below the $100 threshold.",
+    "lastChecked": "2026-04-24T05:53:50.659Z"
   },
   "iwaar0e": {
     "met": true,
-    "reason": "The Bitcoin price is $77,865, which exceeds $50,000.",
-    "lastChecked": "2026-04-23T05:41:43.243Z"
+    "reason": "The current price of Bitcoin at $77,852 exceeds the $50,000 threshold.",
+    "lastChecked": "2026-04-24T05:54:20.752Z"
   }
 }
